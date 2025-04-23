@@ -3,7 +3,7 @@
  * 
  * This example demonstrates how to:
  * 1. Initialize the SmartAPI client
- * 2. Login with password and TOTP
+ * 2. Login with different authentication methods
  * 3. Check authentication status
  * 4. Generate new session with existing tokens
  * 5. Get user profile
@@ -24,36 +24,57 @@ async function main() {
     console.log('\n1. Initializing SmartAPI client');
     
     const config: SmartAPIConfig = {
-      apiKey: 'Ff6VQt0S',
-      clientId: 'S315107',
+      apiKey: 'YOUR_API_KEY',
+      clientId: 'YOUR_CLIENT_ID',
       debug: DEBUG,
     };
     
     const smartApi = new SmartAPI(config);
     console.log('SmartAPI client initialized successfully');
 
-    // Step 2: Login using password and optional TOTP
-    console.log('\n2. Logging in with password (and optional TOTP)');
+    // Step 2: Login using different methods
+    console.log('\n2. Demonstrating different login scenarios');
     
     // Replace with actual credentials
-    const password = '2643';
-    const totp = '895946'; // Leave empty if TOTP is not enabled
+    const password = 'YOUR_PASSWORD';
     
-    const loginResponse = await smartApi.login(password, totp);
-    console.log('Login response:', loginResponse);
+    // Scenario 1: Login without TOTP (for accounts without 2FA enabled)
+    console.log('\n2.1 Login without TOTP');
+    const loginResponseNoTotp = await smartApi.login(password);
+    console.log('Login without TOTP:', loginResponseNoTotp.status ? 'Success' : 'Failed');
+    
+    if (loginResponseNoTotp.status) {
+      // Logout to prepare for next scenario
+      await smartApi.logout();
+    }
 
-    if (loginResponse.status) {
+    // Scenario 2: Login with manually provided TOTP
+    console.log('\n2.2 Login with manually provided TOTP');
+    const totp = 'TOTP_CODE_HERE'; // Enter a valid TOTP code if your account requires it
+    
+    const loginResponseWithTotp = await smartApi.login(password, totp);
+    console.log('Login with TOTP:', loginResponseWithTotp.status ? 'Success' : 'Failed');
+    
+    // Store tokens from the successful login
+    let jwtToken, refreshToken, feedToken;
+    
+    if (loginResponseWithTotp.status) {
       // Store tokens for future use
-      const jwtToken = loginResponse.data?.jwtToken;
-      const refreshToken = loginResponse.data?.refreshToken;
-      const feedToken = loginResponse.data?.feedToken;
+      jwtToken = loginResponseWithTotp.data?.jwtToken;
+      refreshToken = loginResponseWithTotp.data?.refreshToken;
+      feedToken = loginResponseWithTotp.data?.feedToken;
       
       console.log('JWT Token:', jwtToken);
       console.log('Refresh Token:', refreshToken);
       console.log('Feed Token:', feedToken);
+    } else if (loginResponseNoTotp.status) {
+      // If login with TOTP failed but non-TOTP login succeeded
+      jwtToken = loginResponseNoTotp.data?.jwtToken;
+      refreshToken = loginResponseNoTotp.data?.refreshToken;
+      feedToken = loginResponseNoTotp.data?.feedToken;
     } else {
-      console.error('Login failed:', loginResponse.message);
-      return; // Exit if login fails
+      console.error('All login attempts failed');
+      return; // Exit if all logins fail
     }
 
     // Step 3: Check if authenticated
@@ -67,16 +88,26 @@ async function main() {
     console.log('Profile response:', profileResponse);
 
     // Step 5: Demonstrate token-based authentication
-    // In a real application, you would save these tokens and reuse them
     console.log('\n5. Demonstrating token-based authentication');
-    console.log('Normally, you would save your tokens from a previous login and use them like this:');
-    console.log(`
-    const savedJwtToken = '...your saved jwt token...';
-    const savedRefreshToken = '...your saved refresh token...';
     
-    const sessionResponse = await smartApi.generateSession(savedJwtToken, savedRefreshToken);
-    console.log('Session response:', sessionResponse);
-    `);
+    // Create a new SmartAPI instance using the tokens from the previous login
+    console.log('Creating new SmartAPI instance with saved tokens');
+    const tokenConfig: SmartAPIConfig = {
+      apiKey: 'YOUR_API_KEY',
+      jwtToken: jwtToken,
+      refreshToken: refreshToken,
+      debug: DEBUG
+    };
+    
+    const tokenSmartApi = new SmartAPI(tokenConfig);
+    
+    // Check if authenticated with token
+    console.log('Authentication status with token:', tokenSmartApi.auth.isAuthenticated());
+    
+    // Try getting profile with token authentication
+    console.log('Fetching profile with token authentication:');
+    const tokenProfileResponse = await tokenSmartApi.getProfile();
+    console.log('Profile response with token auth:', tokenProfileResponse.status ? 'Success' : 'Failed');
 
     // Step 6: Logout
     console.log('\n6. Logging out');

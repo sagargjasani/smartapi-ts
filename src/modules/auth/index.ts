@@ -9,6 +9,7 @@ import {
 } from '../../types';
 import * as http from '../../utils/http';
 import { ERROR_CODES } from '../../constants/errorCodes';
+import { authenticator } from 'otplib';
 
 /**
  * Authentication module for SmartAPI
@@ -24,6 +25,7 @@ export class Auth {
   private httpClient: AxiosInstance;
   private lastTokenRefresh: number = 0;
   private minRefreshInterval: number = 60000; // Minimum 1 minute between token refresh attempts
+  private totpSecret?: string;
 
   /**
    * Initialize authentication module
@@ -35,6 +37,36 @@ export class Auth {
     this.refreshToken = config.refreshToken;
     this.debug = debug;
     this.httpClient = httpClient;
+    this.totpSecret = config.totpSecret;
+  }
+
+  /**
+   * Generate a TOTP code using the configured TOTP secret
+   * @returns Generated TOTP code or undefined if no secret is set
+   */
+  public generateTOTP(): string | undefined {
+    if (!this.totpSecret) {
+      this.log('No TOTP secret configured');
+      return undefined;
+    }
+
+    try {
+      const token = authenticator.generate(this.totpSecret);
+      this.log('TOTP generated successfully');
+      return token;
+    } catch (error) {
+      this.log('Failed to generate TOTP', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Set the TOTP secret key
+   * @param secret The TOTP secret key
+   */
+  public setTOTPSecret(secret: string): void {
+    this.totpSecret = secret;
+    this.log('TOTP secret configured');
   }
 
   /**
@@ -129,6 +161,7 @@ export class Auth {
    * Authenticate user with Angel One API using password
    * @param password User's password
    * @param totp TOTP code from authenticator app for two-factor authentication
+   *            (if not provided and totpSecret is set, will be generated automatically)
    * @param state Optional state variable for external applications
    * @param options Network configuration options
    * @returns Authentication result containing jwt token, refresh token and feed token
@@ -155,9 +188,22 @@ export class Auth {
       password,
     };
 
-    // Add TOTP if provided
+    // First check if TOTP was provided directly in the function call
     if (totp) {
       payload.totp = totp;
+      this.log('Using provided TOTP code');
+    } 
+    // If no TOTP was provided, try to generate it from secret
+    else if (this.totpSecret) {
+      const generatedTotp = this.generateTOTP();
+      if (generatedTotp) {
+        payload.totp = generatedTotp;
+        this.log('Using auto-generated TOTP code from secret');
+      } else {
+        this.log('Failed to generate TOTP despite having secret');
+      }
+    } else {
+      this.log('No TOTP code provided or secret configured');
     }
     
     // Add state parameter if provided

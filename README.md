@@ -1,261 +1,407 @@
-# Angel One SmartAPI TypeScript Library
+# Angel One SmartAPI - TypeScript Library
 
-A comprehensive TypeScript wrapper for the Angel One SmartAPI broker API. This library provides a simple and intuitive interface to interact with Angel One's trading platform.
+A robust TypeScript client library for Angel One's SmartAPI trading platform. Perform stock market trading operations including authentication, order placement, portfolio management, and real-time market data access.
+
+[![npm version](https://img.shields.io/npm/v/angelone-smartapi-ts.svg)](https://www.npmjs.com/package/angelone-smartapi-ts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Features
+
+- 💪 **Type Safety**: Written in TypeScript with full type definitions
+- 🔐 **Authentication**: Login with password, TOTP, or automatic TOTP generation
+- 📊 **Market Data**: Access market quotes, historical data, and real-time streaming
+- 📝 **Order Management**: Place, modify, and cancel orders including bracket and cover orders
+- 📂 **Portfolio**: Get positions, holdings, and funds information
+- 🔔 **GTT**: Set up Good Till Triggered orders with precise conditions
+- 💰 **Brokerage**: Calculate brokerage charges for trades
+- 🔎 **Instruments**: Search and retrieve instrument details
+- 🔄 **WebSockets**: Real-time market data streaming
 
 ## Installation
-
-```bash
-pnpm add angelone-smartapi-ts
-```
-
-or using npm:
 
 ```bash
 npm install angelone-smartapi-ts
 ```
 
-or using yarn:
+or with yarn:
 
 ```bash
 yarn add angelone-smartapi-ts
 ```
 
-## Usage
+or with pnpm:
 
-### Initialize SmartAPI
+```bash
+pnpm add angelone-smartapi-ts
+```
+
+## Quick Start
+
+### Basic Authentication
 
 ```typescript
-import { SmartAPI, SmartAPIConfig } from 'angelone-smartapi-ts';
+import { SmartAPI } from 'angelone-smartapi-ts';
 
-// Configure the API client
-const config: SmartAPIConfig = {
+// Initialize SmartAPI client
+const smartApi = new SmartAPI({
   apiKey: 'YOUR_API_KEY',
   clientId: 'YOUR_CLIENT_ID',
-  debug: true // Enable for detailed logs
-};
+  debug: true // Set to false in production
+});
 
-// Initialize
-const smartApi = new SmartAPI(config);
+// Login with password (for accounts without 2FA)
+async function login() {
+  try {
+    const loginResponse = await smartApi.login('YOUR_PASSWORD');
+    console.log('Login successful:', loginResponse.status);
+    
+    // Get user profile
+    const profile = await smartApi.getProfile();
+    console.log('User profile:', profile);
+  } catch (error) {
+    console.error('Login failed:', error);
+  }
+}
+
+login();
 ```
 
-### Authentication
+### Authentication with Manual TOTP
+
+If you have two-factor authentication enabled on your Angel One account:
 
 ```typescript
-// Login with password (and optional TOTP)
-const loginResponse = await smartApi.login('YOUR_PASSWORD', 'TOTP_IF_ENABLED');
-console.log(loginResponse);
+import { SmartAPI } from 'angelone-smartapi-ts';
 
-// Alternatively, if you already have tokens:
-const sessionResponse = await smartApi.generateSession('YOUR_JWT_TOKEN', 'YOUR_REFRESH_TOKEN');
-console.log(sessionResponse);
+const smartApi = new SmartAPI({
+  apiKey: 'YOUR_API_KEY',
+  clientId: 'YOUR_CLIENT_ID'
+});
+
+async function loginWithTotp() {
+  try {
+    // You'll need to generate this code from your authenticator app
+    const totp = '123456'; // Replace with your current TOTP code
+    const loginResponse = await smartApi.login('YOUR_PASSWORD', totp);
+    
+    console.log('Login successful:', loginResponse.status);
+  } catch (error) {
+    console.error('Login failed:', error);
+  }
+}
+
+loginWithTotp();
 ```
 
-### Get User Profile
+### Authentication with Auto TOTP Generation
+
+For automated systems, you can set up automatic TOTP generation using your TOTP secret:
 
 ```typescript
-const profileResponse = await smartApi.getProfile();
-console.log(profileResponse);
+import { SmartAPI } from 'angelone-smartapi-ts';
+
+// Initialize with your TOTP secret
+const smartApi = new SmartAPI({
+  apiKey: 'YOUR_API_KEY',
+  clientId: 'YOUR_CLIENT_ID',
+  totpSecret: 'YOUR_TOTP_SECRET' // The secret key used to generate TOTP codes
+});
+
+async function loginWithAutoTotp() {
+  try {
+    // No TOTP code needed - will be generated automatically
+    const loginResponse = await smartApi.login('YOUR_PASSWORD');
+    
+    console.log('Login with auto TOTP successful:', loginResponse.status);
+  } catch (error) {
+    console.error('Login failed:', error);
+  }
+}
+
+loginWithAutoTotp();
 ```
 
-### Place an Order
+> **Note**: You receive the TOTP secret only once when setting up 2FA with Angel One. Make sure to store this securely. Generate totp secret by going https://smartapi.angelbroking.com/enable-totp
+
+## Market Data
+
+### Getting LTP (Last Traded Price)
 
 ```typescript
-import { OrderType, TransactionType, ProductType, Variety, OrderParams } from 'angelone-smartapi-ts';
-
-// Prepare order parameters
-const orderParams: OrderParams = {
-  symboltoken: '3045',
+// Get LTP for a single instrument
+const ltpData = await smartApi.getLTP({
   exchange: 'NSE',
-  tradingsymbol: 'SBIN-EQ',
-  quantity: 1,
-  price: 0,
-  producttype: ProductType.INTRADAY,
-  transactiontype: TransactionType.BUY,
-  ordertype: OrderType.MARKET,
-  variety: Variety.NORMAL,
-  validity: 'DAY'
-};
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885'
+});
 
-// Place order
-const orderResponse = await smartApi.placeOrder(orderParams);
-console.log(orderResponse);
+// Get multiple LTP values
+const multiLtpData = await smartApi.getMultiLTP([
+  {
+    exchange: 'NSE',
+    tradingSymbol: 'RELIANCE-EQ',
+    symbolToken: '2885'
+  },
+  {
+    exchange: 'NSE',
+    tradingSymbol: 'INFY-EQ',
+    symbolToken: '1594'
+  }
+]);
 ```
 
-### Get Order Book
+### Historical Data
 
 ```typescript
+const historicalData = await smartApi.getHistoricalData({
+  exchange: 'NSE',
+  symbolToken: '2885',
+  interval: 'ONE_DAY',
+  fromDate: '2023-04-01 09:15',
+  toDate: '2023-04-30 15:30'
+});
+```
+
+## Order Management
+
+### Placing Orders
+
+```typescript
+// Place a regular order
+const orderResponse = await smartApi.placeOrder({
+  variety: 'NORMAL',
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885',
+  transactionType: 'BUY',
+  exchange: 'NSE',
+  orderType: 'LIMIT',
+  productType: 'INTRADAY',
+  duration: 'DAY',
+  price: '2100',
+  squareoff: '0',
+  stoploss: '0',
+  quantity: '1'
+});
+
+// Place a bracket order
+const bracketOrderResponse = await smartApi.placeBracketOrder({
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885',
+  transactionType: 'BUY',
+  exchange: 'NSE',
+  orderType: 'LIMIT',
+  productType: 'INTRADAY',
+  duration: 'DAY',
+  price: '2100',
+  squareoff: '10',
+  stoploss: '5',
+  quantity: '1'
+});
+
+// Place a cover order
+const coverOrderResponse = await smartApi.placeCoverOrder({
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885',
+  transactionType: 'BUY',
+  exchange: 'NSE',
+  orderType: 'LIMIT',
+  productType: 'INTRADAY',
+  duration: 'DAY',
+  price: '2100',
+  coverPrice: '2050',
+  quantity: '1'
+});
+```
+
+### Order Management
+
+```typescript
+// Modify an existing order
+const modifyResponse = await smartApi.modifyOrder({
+  variety: 'NORMAL',
+  orderType: 'LIMIT',
+  orderID: '230428000000072',
+  price: '2110',
+  quantity: '1'
+});
+
+// Cancel an order
+const cancelResponse = await smartApi.cancelOrder({
+  variety: 'NORMAL',
+  orderID: '230428000000072'
+});
+
+// Get order book
 const orderBook = await smartApi.getOrderBook();
-console.log(orderBook);
+
+// Get trade book
+const tradeBook = await smartApi.getTradeBook();
 ```
 
-### Get Holdings
+## Portfolio Management
 
 ```typescript
-const holdings = await smartApi.getHoldings();
-console.log(holdings);
-```
-
-### Get Positions
-
-```typescript
+// Get current positions
 const positions = await smartApi.getPositions();
-console.log(positions);
+
+// Get holdings
+const holdings = await smartApi.getHoldings();
+
+// Get all holdings including pledged holdings
+const allHoldings = await smartApi.getAllHoldings();
+
+// Get funds and margins
+const funds = await smartApi.getFunds();
+
+// Convert position (for example from INTRADAY to DELIVERY)
+const convertResponse = await smartApi.convertPosition({
+  exchange: 'NSE',
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885',
+  transactionType: 'BUY',
+  positionType: 'DAY',
+  quantityToConvert: '1',
+  fromProductType: 'INTRADAY',
+  toProductType: 'DELIVERY'
+});
 ```
 
-### Get LTP (Last Traded Price)
+## WebSockets for Real-Time Data
 
 ```typescript
-const ltpResponse = await smartApi.getLTP('NSE', '3045', 'SBIN-EQ');
-console.log(ltpResponse);
-```
+import { SmartAPI, SmartWebSocket } from 'angelone-smartapi-ts';
 
-### Logout
+// First authenticate with SmartAPI
+const smartApi = new SmartAPI({
+  apiKey: 'YOUR_API_KEY',
+  clientId: 'YOUR_CLIENT_ID'
+});
 
-```typescript
-const logoutResponse = await smartApi.logout();
-console.log(logoutResponse);
-```
+// Login
+await smartApi.login('YOUR_PASSWORD', 'YOUR_TOTP');
 
-## WebSocket for Real-time Market Data
+// Initialize WebSocket
+const ws = new SmartWebSocket({
+  feedToken: smartApi.auth.getFeedToken(),
+  clientId: 'YOUR_CLIENT_ID',
+  apiKey: 'YOUR_API_KEY',
+  debug: true
+});
 
-```typescript
-import { SmartAPIWebSocket, FeedMode } from 'angelone-smartapi-ts';
-
-// Initialize WebSocket client
-const ws = new SmartAPIWebSocket(
-  'YOUR_API_KEY',
-  'YOUR_CLIENT_ID',
-  'YOUR_FEED_TOKEN',
-  true // Enable debug logs
-);
-
-// Connect to WebSocket server
+// Connect to WebSocket
 ws.connect()
   .then(() => {
-    console.log('Connected to WebSocket server');
-
-    // Subscribe to a symbol
-    return ws.subscribe(
-      'CORRELATION_ID', // Any unique ID for this subscription
-      'NSE',            // Exchange
-      '3045',           // Symbol token
-      FeedMode.FULL     // Data mode (FULL, LTP, QUOTE)
-    );
+    // Subscribe to tokens
+    ws.subscribe([
+      { action: 'SUBSCRIBE', feedType: 'LTP', scriptToken: '2885' },
+      { action: 'SUBSCRIBE', feedType: 'DEPTH', scriptToken: '1594' }
+    ]);
   })
-  .then(() => {
-    // Listen for market data ticks
-    ws.on('tick', (data) => {
-      console.log('Market data received:', data);
-    });
+  .catch(err => {
+    console.error('WebSocket connection error:', err);
+  });
 
-    // Listen for specific subscription
-    ws.on('tick:CORRELATION_ID', (data) => {
-      console.log('Data for specific subscription:', data);
-    });
+// Handle messages
+ws.on('message', message => {
+  console.log('WebSocket message:', message);
+});
 
-    // Later, unsubscribe if needed
-    setTimeout(() => {
-      ws.unsubscribe('CORRELATION_ID', 'NSE', '3045')
-        .then(() => console.log('Unsubscribed'))
-        .catch(console.error);
-    }, 60000);
-  })
-  .catch(console.error);
+// Handle connection close
+ws.on('close', (code, reason) => {
+  console.log('WebSocket closed:', code, reason);
+});
 
-// Handle connection events
-ws.on('connect', () => console.log('WebSocket connected'));
-ws.on('disconnect', (reason) => console.log('WebSocket disconnected:', reason));
-ws.on('error', (error) => console.log('WebSocket error:', error));
+// Handle errors
+ws.on('error', error => {
+  console.error('WebSocket error:', error);
+});
+
+// Disconnect when done
+// ws.disconnect();
+```
+
+## GTT (Good Till Triggered) Orders
+
+```typescript
+// Create a GTT rule
+const gttCreateResponse = await smartApi.createGTT({
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885',
+  exchange: 'NSE',
+  productType: 'DELIVERY',
+  transactionType: 'BUY',
+  price: '2100',
+  quantity: '1',
+  triggerType: 'SINGLE',
+  triggerPrice: '2090',
+  limitPrice: '2100'
+});
+
+// Modify a GTT rule
+const gttModifyResponse = await smartApi.modifyGTT({
+  id: '123456',
+  tradingSymbol: 'RELIANCE-EQ',
+  symbolToken: '2885',
+  exchange: 'NSE',
+  productType: 'DELIVERY',
+  transactionType: 'BUY',
+  price: '2110',
+  quantity: '1',
+  triggerType: 'SINGLE',
+  triggerPrice: '2100',
+  limitPrice: '2110'
+});
+
+// Cancel a GTT rule
+const gttCancelResponse = await smartApi.cancelGTT({
+  id: '123456',
+  symbolToken: '2885',
+  exchange: 'NSE'
+});
+
+// Get GTT rule details
+const gttDetails = await smartApi.getGTTDetails({ id: '123456' });
+
+// Get list of GTT rules
+const gttList = await smartApi.getGTTList();
 ```
 
 ## Error Handling
 
-All API methods return a consistent response structure:
+The library uses a consistent error handling pattern:
 
 ```typescript
-{
-  status: boolean,   // true for success, false for failure
-  message: string,   // Success or error message
-  errorcode?: string, // Error code if applicable
-  data?: any         // Response data if successful
+try {
+  const response = await smartApi.placeOrder({
+    // Order parameters
+  });
+  
+  if (response.status) {
+    console.log('Order placed successfully:', response.data);
+  } else {
+    console.log('Order placement failed:', response.message);
+  }
+} catch (error) {
+  console.error('An error occurred:', error);
 }
 ```
 
-### Comprehensive Error Codes
+## Token Management
 
-This library includes comprehensive error code handling with detailed information about each error:
-
-```typescript
-import { ERROR_CODES, isAuthenticationError, isOrderError, getErrorDescription } from 'angelone-smartapi-ts';
-
-const response = await smartApi.placeOrder(orderParams);
-if (!response.status) {
-  // Check specific error types
-  if (response.errorcode && isAuthenticationError(response.errorcode)) {
-    console.log('Authentication error - please login again');
-  } 
-  else if (response.errorcode && isOrderError(response.errorcode)) {
-    console.log(`Order error: ${getErrorDescription(response.errorcode)}`);
-  }
-  else {
-    console.log(`Error: ${response.message}`);
-  }
-}
-```
-
-### Automatic Token Refresh
-
-The library automatically handles token expiration by refreshing the token and retrying the operation when possible:
+The library handles token refresh automatically. You can also manually manage tokens:
 
 ```typescript
-// This will automatically refresh the token if expired and retry
-const profileResponse = await smartApi.getProfile();
+// Initialize with existing tokens
+const smartApi = new SmartAPI({
+  apiKey: 'YOUR_API_KEY',
+  jwtToken: 'YOUR_JWT_TOKEN', 
+  refreshToken: 'YOUR_REFRESH_TOKEN'
+});
 
-// Token refresh will only happen when needed, so you don't need to handle
-// AG8002 (Token Expired) or AB8051 (Refresh Token Expired) errors manually
+// Generate a new session with tokens
+const sessionResponse = await smartApi.generateSession();
 ```
-
-### Complete Error Code List
-
-Here's the complete list of error codes available in the library:
-
-| Error Code | Description |
-|------------|-------------|
-| AG8001 | Invalid Token |
-| AG8002 | Token Expired |
-| AG8003 | Token missing |
-| AB8050 | Invalid Refresh Token |
-| AB8051 | Refresh Token Expired |
-| AB1000 | Invalid Email Or Password |
-| AB1001 | Invalid Email |
-| AB1002 | Invalid Password Length |
-| AB1003 | Client Already Exists |
-| AB1004 | Something Went Wrong, Please Try After Sometime |
-| AB1005 | User Type Must Be USER |
-| AB1006 | Client Is Block For Trading |
-| AB1007 | AMX Error |
-| AB1008 | Invalid Order Variety |
-| AB1009 | Symbol Not Found |
-| AB1010 | AMX Session Expired |
-| AB1011 | Client not login |
-| AB1012 | Invalid Product Type |
-| AB1013 | Order not found |
-| AB1014 | Trade not found |
-| AB1015 | Holding not found |
-| AB1016 | Position not found |
-| AB1017 | Position conversion failed |
-| AB1018 | Failed to get symbol details |
-| AB4008 | ordertag length should be less than 20 characters |
-| AB2000 | Error not specified |
-| AB2001 | Internal Error, Please Try After Sometime |
-| AB1031 | Old Password Mismatch |
-| AB1032 | User Not Found |
-| AB2002 | ROBO order is block |
-
-## API Reference
-
-For a complete list of API endpoints and parameters, please refer to the [Angel One SmartAPI documentation](https://smartapi.angelbroking.com/docs).
 
 ## License
 
-MIT
+[MIT](LICENSE)

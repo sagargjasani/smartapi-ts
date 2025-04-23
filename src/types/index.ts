@@ -23,6 +23,11 @@ export interface SmartAPIConfig {
   totp?: string;
   
   /**
+   * TOTP secret key for automatic generation of TOTP codes
+   */
+  totpSecret?: string;
+  
+  /**
    * JWT token for authenticated API calls
    */
   jwtToken?: string;

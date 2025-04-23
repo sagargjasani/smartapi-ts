@@ -52,6 +52,7 @@ export class SmartAPI {
   public getHistoricalData: typeof MarketData.prototype.getHistoricalData;
   public getHistoricalDataPaginated: typeof MarketData.prototype.getHistoricalDataPaginated;
   public getFunds: typeof Portfolio.prototype.getFunds;
+  public convertPosition: typeof Portfolio.prototype.convertPosition;
   public createGTT: typeof GTT.prototype.createRule;
   public modifyGTT: typeof GTT.prototype.modifyRule;
   public cancelGTT: typeof GTT.prototype.cancelRule;
@@ -70,6 +71,10 @@ export class SmartAPI {
   public getLtp: typeof Instruments.prototype.getLtp;
   public getNseIntradayScrips: typeof Instruments.prototype.getNseIntradayScrips;
   public getBseIntradayScrips: typeof Instruments.prototype.getBseIntradayScrips;
+  
+  // New TOTP methods
+  public generateTOTP: typeof Auth.prototype.generateTOTP;
+  public setTOTPSecret: typeof Auth.prototype.setTOTPSecret;
   
   // Static methods
   static parseWebhookData = MarketData.parseWebhookData;
@@ -116,6 +121,7 @@ export class SmartAPI {
     this.getHistoricalData = this._marketData.getHistoricalData.bind(this._marketData);
     this.getHistoricalDataPaginated = this._marketData.getHistoricalDataPaginated.bind(this._marketData);
     this.getFunds = this._portfolio.getFunds.bind(this._portfolio);
+    this.convertPosition = this._portfolio.convertPosition.bind(this._portfolio);
     this.createGTT = this._gtt.createRule.bind(this._gtt);
     this.modifyGTT = this._gtt.modifyRule.bind(this._gtt);
     this.cancelGTT = this._gtt.cancelRule.bind(this._gtt);
@@ -134,6 +140,10 @@ export class SmartAPI {
     this.getLtp = this._instruments.getLtp.bind(this._instruments);
     this.getNseIntradayScrips = this._instruments.getNseIntradayScrips.bind(this._instruments);
     this.getBseIntradayScrips = this._instruments.getBseIntradayScrips.bind(this._instruments);
+    
+    // Bind new TOTP methods
+    this.generateTOTP = this._auth.generateTOTP.bind(this._auth);
+    this.setTOTPSecret = this._auth.setTOTPSecret.bind(this._auth);
   }
 
   /**

@@ -5,7 +5,8 @@ import {
   Holding,
   Position,
   RMSData,
-  AllHoldingsResponse
+  AllHoldingsResponse,
+  PositionConversionParams
 } from '../../types';
 import { Auth } from '../auth';
 import * as http from '../../utils/http';
@@ -166,6 +167,44 @@ export class Portfolio {
     } catch (error) {
       this.log('Get funds failed', error);
       const retryOperation = () => this.getFunds(options);
+      return this.auth.handleApiError(error, retryOperation);
+    }
+  }
+
+  /**
+   * Convert a position from one product type to another
+   * For example, convert from INTRADAY to DELIVERY or vice versa
+   * 
+   * @param params Position conversion parameters
+   * @param options Network configuration options
+   * @returns Conversion response
+   */
+  public async convertPosition(
+    params: PositionConversionParams,
+    options?: {
+      clientLocalIP?: string;
+      clientPublicIP?: string;
+      macAddress?: string;
+    }
+  ): Promise<ApiResponse<any>> {
+    if (!this.auth.isAuthenticated()) {
+      return {
+        status: false,
+        message: 'Not authenticated. Please login first.'
+      };
+    }
+
+    this.log('Converting position', params);
+
+    try {
+      return await http.post(
+        `${API_URLS.BASE_URL}${API_URLS.CONVERT_POSITION}`,
+        params,
+        this.auth.getHeaders(options)
+      );
+    } catch (error) {
+      this.log('Position conversion failed', error);
+      const retryOperation = () => this.convertPosition(params, options);
       return this.auth.handleApiError(error, retryOperation);
     }
   }

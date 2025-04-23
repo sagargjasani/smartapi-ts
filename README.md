@@ -2,7 +2,7 @@
 
 A robust TypeScript client library for Angel One's SmartAPI trading platform. Perform stock market trading operations including authentication, order placement, portfolio management, and real-time market data access.
 
-[![npm version](https://img.shields.io/npm/v/angelone-smartapi-ts.svg)](https://www.npmjs.com/package/angelone-smartapi-ts)
+[![npm version](https://img.shields.io/npm/v/smartapi-typescript.svg)](https://www.npmjs.com/package/smartapi-typescript)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Features
@@ -20,19 +20,19 @@ A robust TypeScript client library for Angel One's SmartAPI trading platform. Pe
 ## Installation
 
 ```bash
-npm install angelone-smartapi-ts
+npm install smartapi-typescript
 ```
 
 or with yarn:
 
 ```bash
-yarn add angelone-smartapi-ts
+yarn add smartapi-typescript
 ```
 
 or with pnpm:
 
 ```bash
-pnpm add angelone-smartapi-ts
+pnpm add smartapi-typescript
 ```
 
 ## Quick Start
@@ -40,7 +40,7 @@ pnpm add angelone-smartapi-ts
 ### Basic Authentication
 
 ```typescript
-import { SmartAPI } from 'angelone-smartapi-ts';
+import { SmartAPI } from 'smartapi-typescript';
 
 // Initialize SmartAPI client
 const smartApi = new SmartAPI({
@@ -71,7 +71,7 @@ login();
 If you have two-factor authentication enabled on your Angel One account:
 
 ```typescript
-import { SmartAPI } from 'angelone-smartapi-ts';
+import { SmartAPI } from 'smartapi-typescript';
 
 const smartApi = new SmartAPI({
   apiKey: 'YOUR_API_KEY',
@@ -98,7 +98,7 @@ loginWithTotp();
 For automated systems, you can set up automatic TOTP generation using your TOTP secret:
 
 ```typescript
-import { SmartAPI } from 'angelone-smartapi-ts';
+import { SmartAPI } from 'smartapi-typescript';
 
 // Initialize with your TOTP secret
 const smartApi = new SmartAPI({
@@ -269,7 +269,7 @@ const convertResponse = await smartApi.convertPosition({
 ## WebSockets for Real-Time Data
 
 ```typescript
-import { SmartAPI, SmartWebSocket } from 'angelone-smartapi-ts';
+import { SmartAPI, SmartWebSocket } from 'smartapi-typescript';
 
 // First authenticate with SmartAPI
 const smartApi = new SmartAPI({

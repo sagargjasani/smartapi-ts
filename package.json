@@ -1,6 +1,6 @@
 {
-  "name": "angelone-smartapi-ts",
-  "version": "0.1.0",
+  "name": "smartapi-typescript",
+  "version": "1.0.1",
   "description": "TypeScript library for Angel One SmartAPI broker API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
